@@ -223,9 +223,9 @@ behavior). Details and invariants live in
 | Platform | State |
 | --- | --- |
 | darwin/arm64 | ✅ built + full `-race` suite (Apple Silicon) |
-| linux/amd64 (glibc) | ✅ built + full `-race` suite (Ubuntu 24.04, glibc 2.39) |
-| linux/arm64 (glibc) | ⏳ cross-builds; hardware verification pending |
-| darwin/amd64 | ⏳ cross-builds; not yet committed |
+| darwin/amd64 | ✅ built + tests (via Rosetta) |
+| linux/amd64 (glibc) | ✅ built + full `-race` suite — Ubuntu 24.04 **and RHEL** |
+| linux/arm64 (glibc) | ✅ cross-built; hardware verification pending |
 
 The static archives are **cross-built locally** (a `staticlib` needs no cross
 linker) via `make libs` and committed — no CI service required. Each Linux

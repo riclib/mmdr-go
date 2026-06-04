@@ -12,24 +12,37 @@
 # (Ubuntu, Debian, RHEL 8/9, ...). musl would add an -lunwind dependency that
 # isn't present by default on most distros.
 #
-# Usage: shim/build-libs.sh [target-key ...]   (default: all)
+# Usage: shim/build-libs.sh [target-key ...]   (default: the 3 core targets)
+# Keys: darwin-arm64 darwin-amd64 linux-amd64 linux-arm64
+#
+# Kept POSIX/bash-3.2 friendly (macOS ships bash 3.2 — no associative arrays).
 set -euo pipefail
 cd "$(dirname "$0")"
 
-# target-key  ->  "rust-triple goos_goarch"
-declare -A TARGETS=(
-  [darwin-arm64]="aarch64-apple-darwin darwin_arm64"
-  [darwin-amd64]="x86_64-apple-darwin darwin_amd64"
-  [linux-amd64]="x86_64-unknown-linux-gnu linux_amd64"
-  [linux-arm64]="aarch64-unknown-linux-gnu linux_arm64"
-)
+triple_for() {
+  case "$1" in
+    darwin-arm64) echo "aarch64-apple-darwin" ;;
+    darwin-amd64) echo "x86_64-apple-darwin" ;;
+    linux-amd64)  echo "x86_64-unknown-linux-gnu" ;;
+    linux-arm64)  echo "aarch64-unknown-linux-gnu" ;;
+    *) echo "unknown target '$1'" >&2; exit 1 ;;
+  esac
+}
+libdir_for() {
+  case "$1" in
+    darwin-arm64) echo "darwin_arm64" ;;
+    darwin-amd64) echo "darwin_amd64" ;;
+    linux-amd64)  echo "linux_amd64" ;;
+    linux-arm64)  echo "linux_arm64" ;;
+  esac
+}
 
 keys=("$@")
 [ ${#keys[@]} -eq 0 ] && keys=(darwin-arm64 linux-amd64 linux-arm64)
 
 for key in "${keys[@]}"; do
-  entry="${TARGETS[$key]:?unknown target '$key'}"
-  triple="${entry%% *}"; libdir="${entry##* }"
+  triple="$(triple_for "$key")"
+  libdir="$(libdir_for "$key")"
   echo "==> $key ($triple)"
   rustup target add "$triple" >/dev/null
   cargo build --release --target "$triple"
@@ -37,5 +50,6 @@ for key in "${keys[@]}"; do
   cp "target/$triple/release/libmmdr.a" "../lib/$libdir/libmmdr.a"
   echo "    -> lib/$libdir/libmmdr.a"
 done
-echo "done. Remember to run 'cargo rustc --release --target <triple> -- --print native-static-libs'"
-echo "for any NEW target and put the result in its link_<goos>_<goarch>.go LDFLAGS."
+echo "done. For a NEW target, also run:"
+echo "  cargo rustc --release --target <triple> -- --print native-static-libs"
+echo "and put the result in its link_<goos>_<goarch>.go LDFLAGS."
