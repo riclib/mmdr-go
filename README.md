@@ -13,9 +13,9 @@ svg, err := mmdr.Render("flowchart LR; A-->B-->C")
 import "github.com/riclib/mmdr-go"
 ```
 
-> **Status: proof-of-concept.** The binding is verified end-to-end on
-> **darwin/arm64** only. Linux (amd64/arm64) and a tagged `v1.0.0` release are
-> the next milestone. See [Project status](#project-status).
+> **Status: pre-release.** Verified end-to-end on **darwin/arm64** and
+> **linux/amd64** (built + full `-race` suite on glibc Ubuntu 24.04). linux/arm64
+> and a tagged `v1.0.0` are next. See [Project status](#project-status).
 
 ## Why
 
@@ -23,7 +23,7 @@ import "github.com/riclib/mmdr-go"
 | --- | --- | --- | --- |
 | `mermaid.js` (headless browser) | Node + Chromium | ~100s of ms + spawn | heavy, but reference-quality |
 | `mmdr` CLI (subprocess) | the `mmdr` binary on `PATH` | ~5–8 ms + spawn | simple, but process spawn per diagram |
-| **`mmdr-go` (this library)** | **none at build/run time** | **~0.25 ms** | native call, no spawn, batch/stream friendly |
+| **`mmdr-go` (this library)** | **none at build/run time** | **~0.03–7 ms** | native call, no spawn; see [Performance](#performance) |
 
 If you already build with cgo (e.g. you use `mattn/go-sqlite3` or
 `marcboeker/go-duckdb`), this adds no new toolchain tax — the Rust engine ships
@@ -220,12 +220,20 @@ behavior). Details and invariants live in
 
 ## Project status
 
-| Milestone | State |
+| Platform | State |
 | --- | --- |
-| PoC: cgo binding + thread-safety verification (darwin/arm64) | ✅ done |
-| v1.0.0: Linux musl builds, CI matrix, `RenderWithOptions`, tagged release | ⏳ next |
+| darwin/arm64 | ✅ built + full `-race` suite (Apple Silicon) |
+| linux/amd64 (glibc) | ✅ built + full `-race` suite (Ubuntu 24.04, glibc 2.39) |
+| linux/arm64 (glibc) | ⏳ cross-builds; hardware verification pending |
+| darwin/amd64 | ⏳ cross-builds; not yet committed |
 
-See [`docs/poc-findings.md`](docs/poc-findings.md) for the full PoC writeup.
+The static archives are **cross-built locally** (a `staticlib` needs no cross
+linker) via `make libs` and committed — no CI service required. Each Linux
+archive uses the `*-gnu` triple, whose old glibc baseline links into any modern
+distro (Ubuntu, Debian, **RHEL 8/9**); build your binary on the target as usual.
+`v1.0.0` adds `RenderWithOptions` and a tagged release.
+
+See [`docs/poc-findings.md`](docs/poc-findings.md) for the verification writeup.
 
 ## Acknowledgements
 

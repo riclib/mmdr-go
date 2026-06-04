@@ -8,7 +8,12 @@ GOOS  := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 LIBDIR := lib/$(GOOS)_$(GOARCH)
 
-.PHONY: lib demo test test-race vet fmt clean
+.PHONY: lib libs demo test test-race vet fmt clean
+
+# Cross-build the static archives for all supported platforms into lib/.
+# Needs Rust; a staticlib cross-compiles from any host with no cross C toolchain.
+libs:
+	shim/build-libs.sh
 
 # Build the CLI demo into ./bin.
 demo:
