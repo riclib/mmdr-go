@@ -8,7 +8,12 @@ GOOS  := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 LIBDIR := lib/$(GOOS)_$(GOARCH)
 
-.PHONY: lib test test-race vet fmt clean
+.PHONY: lib demo test test-race vet fmt clean
+
+# Build the CLI demo into ./bin.
+demo:
+	go build -o bin/mmdr-demo ./cmd/mmdr-demo
+	@echo "built bin/mmdr-demo"
 
 # Build the Rust shim for the host platform and copy libmmdr.a into lib/.
 lib:

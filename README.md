@@ -54,6 +54,19 @@ func main() {
 }
 ```
 
+## Command-line demo
+
+A small CLI under `cmd/mmdr-demo` renders a `.mmd` file (or stdin) to SVG:
+
+```sh
+go run ./cmd/mmdr-demo diagram.mmd > diagram.svg
+echo 'flowchart LR; A-->B-->C' | go run ./cmd/mmdr-demo -o out.svg -t
+go run ./cmd/mmdr-demo -version
+```
+
+It reads from the file argument or stdin, writes to stdout or `-o`, and exits
+`2` on an invalid diagram, `3` on a renderer panic — handy for shell pipelines.
+
 ## API
 
 ```go

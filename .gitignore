@@ -5,5 +5,8 @@
 *.test
 *.out
 
+# Built CLI binary
+/bin/
+
 # OS / editor cruft
 .DS_Store
