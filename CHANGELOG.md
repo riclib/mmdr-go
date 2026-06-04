@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.3.0 — 2026-06-04
 
 ### Added
 - Two first-party named themes tuned to the Solid/V4 app's design tokens:
