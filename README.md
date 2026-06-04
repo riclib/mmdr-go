@@ -74,9 +74,9 @@ produces a best-effort (often wrong) diagram. There's no error return and no
 error graphic, so you can't tell from the render alone that the input was wrong.
 
 For an error signal — say, to feed back to an LLM that generated the diagram —
-use `Validate`, which checks the source with the pure-Go
-[`mermaid-check`](https://github.com/sammcj/mermaid-check) parser and returns
-line-numbered diagnostics:
+use `Validate`, which checks the source with a vendored, pure-Go Mermaid parser
+([`mermaid-check`](https://github.com/sammcj/mermaid-check), Apache-2.0, under
+`internal/mermaidcheck/`) and returns line-numbered diagnostics:
 
 ```go
 res, err := mmdr.RenderChecked(src) // validate + render in one call
@@ -100,8 +100,10 @@ Notes:
   that mmdr renders fine — prefer the multi-line form when validating. Divergences
   are pinned in `validate_test.go`.
 
-Validate-only and no cgo? Use `mermaid-check` directly — that's exactly what it's
-for.
+Validate-only and no cgo? Use upstream
+[`mermaid-check`](https://github.com/sammcj/mermaid-check) directly — that's
+exactly what it's for; this binding vendors it only to keep the render+validate
+loop dependency-free and under one version.
 
 ## API
 
@@ -154,12 +156,12 @@ if errors.Is(err, mmdr.ErrInvalidInput) {
 
 * **`CGO_ENABLED=1`** (the default on the supported platforms).
 * A C toolchain (clang/gcc) — already present on a normal dev box.
-* **Go ≥ 1.26.2** (the floor the `mermaid-check` dependency requires).
-* **No Rust toolchain and no `mmdr` binary are required.** The static archive is
-  committed under `lib/<os>_<arch>/` and selected by build tag, so a consumer
-  binary embeds only its own architecture's archive (~9 MB). The `mermaid-check`
-  dependency is pure Go and adds no transitive third-party packages to your
-  binary (its `fatih/color` dep is CLI-only).
+* **Go ≥ 1.24.**
+* **No Rust toolchain, no `mmdr` binary, and no external Go modules.** The static
+  archive is committed under `lib/<os>_<arch>/` and selected by build tag, so a
+  consumer binary embeds only its own architecture's archive (~9 MB). Input
+  validation is vendored (pure Go) under `internal/mermaidcheck/`, so `go.sum` is
+  empty — zero third-party dependencies.
 
 ## Thread safety
 
@@ -229,10 +231,13 @@ See [`docs/poc-findings.md`](docs/poc-findings.md) for the full PoC writeup.
 
 This library is a thin wrapper. All the rendering work is done by
 [`1jehuang/mermaid-rs-renderer`](https://github.com/1jehuang/mermaid-rs-renderer)
-(MIT) — please star the upstream project. Input validation is provided by
+(MIT) — please star the upstream project. Input validation is built on
 [`sammcj/mermaid-check`](https://github.com/sammcj/mermaid-check) (Apache-2.0), a
-pure-Go Mermaid parser/validator. Thanks to both authors.
+pure-Go Mermaid parser/validator, vendored under `internal/mermaidcheck/` (see
+its `PROVENANCE.md`). Thanks to both authors.
 
 ## License
 
-[MIT](LICENSE) © 2026 Ricardo Liberato.
+[MIT](LICENSE) © 2026 Ricardo Liberato, except `internal/mermaidcheck/`, which is
+a vendored copy of `mermaid-check` under the Apache-2.0 license (see
+`internal/mermaidcheck/LICENSE`).

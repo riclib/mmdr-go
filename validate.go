@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	mermaid "github.com/sammcj/mermaid-check"
-	"github.com/sammcj/mermaid-check/validator"
+	mermaidcheck "github.com/riclib/mmdr-go/internal/mermaidcheck"
+	"github.com/riclib/mmdr-go/internal/mermaidcheck/validator"
 )
 
 // Severity classifies a Diagnostic.
@@ -48,7 +48,7 @@ func (d Diagnostic) String() string {
 // Warning (not an Error) noting that validation was skipped — so a
 // renderable-but-unvalidated diagram is never mistaken for an invalid one.
 func Validate(source string) []Diagnostic {
-	diagram, err := mermaid.Parse(source)
+	diagram, err := mermaidcheck.Parse(source)
 	if err != nil {
 		msg := err.Error()
 		sev := SeverityError
@@ -60,7 +60,7 @@ func Validate(source string) []Diagnostic {
 		return []Diagnostic{{Line: lineFromError(msg), Severity: sev, Message: msg}}
 	}
 
-	verrs := mermaid.Validate(diagram, false)
+	verrs := mermaidcheck.Validate(diagram, false)
 	if len(verrs) == 0 {
 		return nil
 	}

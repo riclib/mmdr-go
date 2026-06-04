@@ -81,6 +81,22 @@ change for every consumer. For `vX.Y.Z`:
 
 Each release pins one upstream version and records the mapping in the changelog.
 
+## Vendored validator (`internal/mermaidcheck/`)
+
+Input validation (`Validate`, `RenderChecked`) is built on a vendored, modified
+copy of [`mermaid-check`](https://github.com/sammcj/mermaid-check) (Apache-2.0)
+under `internal/mermaidcheck/`. It's vendored — not a module dependency — because
+it's on the critical path and we extend it to diagram types the renderer supports
+but upstream doesn't yet validate. See `internal/mermaidcheck/PROVENANCE.md` for
+the source commit, license, and the change notice required by Apache-2.0 §4.
+
+- **Adding a diagram type:** add a parser under `internal/mermaidcheck/parser/`,
+  its AST under `ast/`, and a validator under `validator/`, then wire the type
+  into the `Parse` dispatch (`parser/parser.go`) and the `Validate` type switch
+  (`mermaidcheck.Validate`). Mirror an existing type as a template.
+- **Keep the Apache notices intact**; record local changes in git history (the
+  PROVENANCE change-notice covers the bulk move + rename).
+
 ## Tests
 
 * `go test ./...` runs the corpus, error, concurrency, and leak tests.
