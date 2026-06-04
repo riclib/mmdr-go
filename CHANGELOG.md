@@ -20,7 +20,7 @@ First public pre-release. Wraps `mermaid-rs-renderer` 0.2.2.
 Prebuilt static archives committed under `lib/`, selected by build tag:
 - darwin/arm64, darwin/amd64 — verified.
 - linux/amd64 (glibc) — verified on Ubuntu 24.04 and RHEL.
-- linux/arm64 (glibc) — cross-built; hardware verification pending.
+- linux/arm64 (glibc) — verified on native aarch64 Linux.
 
 ### Notes
 - **Zero external Go module dependencies** (`go.sum` is empty).
@@ -33,4 +33,4 @@ Prebuilt static archives committed under `lib/`, selected by build tag:
 
 ### Not yet (planned for v1.0.0)
 - `RenderWithOptions` (themes, dimensions).
-- linux/arm64 hardware verification; upstream coordination issue.
+- Upstream coordination issue.
