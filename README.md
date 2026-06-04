@@ -67,11 +67,65 @@ go run ./cmd/mmdr-demo -version
 It reads from the file argument or stdin, writes to stdout or `-o`, and exits
 `2` on an invalid diagram, `3` on a renderer panic — handy for shell pipelines.
 
+## Validating input
+
+mmdr's renderer is **lenient**: bad Mermaid never returns an error — it silently
+produces a best-effort (often wrong) diagram. There's no error return and no
+error graphic, so you can't tell from the render alone that the input was wrong.
+
+For an error signal — say, to feed back to an LLM that generated the diagram —
+use `Validate`, which checks the source with the pure-Go
+[`mermaid-check`](https://github.com/sammcj/mermaid-check) parser and returns
+line-numbered diagnostics:
+
+```go
+res, err := mmdr.RenderChecked(src) // validate + render in one call
+if err != nil { /* actual render failure */ }
+if res.HasErrors() {
+	for _, d := range res.Diagnostics {
+		fmt.Printf("line %d: %s\n", d.Line, d.Message) // hand back to author/LLM
+	}
+}
+use(res.SVG) // mmdr renders best-effort even on warnings; your call whether to trust it
+```
+
+Notes:
+* **Validation is ~free** — 0.5–12 µs vs. a render of 30 µs–7 ms (see below), so
+  `RenderChecked` ≈ `Render`.
+* **Coverage is a subset.** mermaid-check validates ~16 of the diagram types mmdr
+  renders. For a type it doesn't recognize, `Validate` returns a *Warning* (not
+  an error) so a renderable-but-unvalidated diagram isn't flagged as invalid.
+* **The two parsers can disagree.** They're independent implementations. Known
+  case: mermaid-check rejects the inline-semicolon header `flowchart LR; A-->B`
+  that mmdr renders fine — prefer the multi-line form when validating. Divergences
+  are pinned in `validate_test.go`.
+
+Validate-only and no cgo? Use `mermaid-check` directly — that's exactly what it's
+for.
+
 ## API
 
 ```go
 // Render parses Mermaid source and returns the rendered SVG.
 func Render(source string) (string, error)
+
+// Validate checks the source with mermaid-check and returns diagnostics (nil
+// when clean). It does not render.
+func Validate(source string) []Diagnostic
+
+// RenderChecked validates and renders in one call.
+func RenderChecked(source string) (CheckedResult, error)
+
+type Diagnostic struct {
+	Line, Column int
+	Severity     Severity // "error" | "warning" | "info"
+	Message      string
+}
+type CheckedResult struct {
+	SVG         string
+	Diagnostics []Diagnostic
+}
+func (CheckedResult) HasErrors() bool
 
 // Version returns the upstream mermaid-rs-renderer version, e.g. "0.2.2".
 func Version() string
@@ -100,9 +154,12 @@ if errors.Is(err, mmdr.ErrInvalidInput) {
 
 * **`CGO_ENABLED=1`** (the default on the supported platforms).
 * A C toolchain (clang/gcc) — already present on a normal dev box.
+* **Go ≥ 1.26.2** (the floor the `mermaid-check` dependency requires).
 * **No Rust toolchain and no `mmdr` binary are required.** The static archive is
   committed under `lib/<os>_<arch>/` and selected by build tag, so a consumer
-  binary embeds only its own architecture's archive (~9 MB).
+  binary embeds only its own architecture's archive (~9 MB). The `mermaid-check`
+  dependency is pure Go and adds no transitive third-party packages to your
+  binary (its `fatih/color` dep is CLI-only).
 
 ## Thread safety
 
@@ -125,12 +182,22 @@ correctness: heavy concurrent rendering contends on the text-measurement mutex.
 
 ## Performance
 
-* **~0.25 ms** per typical small diagram on an M-series Mac (after the
-  one-time font-DB / regex warm-up on the first call).
-* Layout cost is **superlinear in edge count** — a single flowchart with
-  thousands of edges can take seconds. This is an upstream layout
-  characteristic; budget accordingly for pathologically large diagrams.
+Measured on an M-series Mac, after the one-time font-DB / regex warm-up:
+
+* **Most diagrams: 30–210 µs.** Sequence, class, gantt, pie, state, mindmap,
+  small flowcharts without edge labels all land here.
+* **Edge labels are expensive.** Each labeled flowchart edge (`A -->|text| B`)
+  adds **~0.7–1.3 ms** — a 6-node flowchart with two labels is ~6.6 ms vs.
+  ~200 µs for the same flowchart unlabeled. An upstream rendering cost, not the
+  binding's. If you render many labeled flowcharts, budget for it.
+* Layout cost is also **superlinear in edge count** — a flowchart with thousands
+  of edges can take seconds.
+* Still no browser, no Node, no subprocess — even the 6.6 ms case beats
+  mermaid.js comfortably.
 * No memory leak: 20,000 renders grow RSS < 1 MB.
+
+(Validation via `Validate`/`RenderChecked` is 0.5–12 µs — negligible next to any
+render.)
 
 ## Supported diagrams
 
@@ -162,7 +229,9 @@ See [`docs/poc-findings.md`](docs/poc-findings.md) for the full PoC writeup.
 
 This library is a thin wrapper. All the rendering work is done by
 [`1jehuang/mermaid-rs-renderer`](https://github.com/1jehuang/mermaid-rs-renderer)
-— please star the upstream project. Both it and this binding are MIT licensed.
+(MIT) — please star the upstream project. Input validation is provided by
+[`sammcj/mermaid-check`](https://github.com/sammcj/mermaid-check) (Apache-2.0), a
+pure-Go Mermaid parser/validator. Thanks to both authors.
 
 ## License
 

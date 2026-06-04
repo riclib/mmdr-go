@@ -91,8 +91,12 @@ the path is exercised structurally and unit-tested on the Go side.)
 
 ## Surprises that affect the v1.0.0 milestone
 
-1. **Per-render cost is ~0.25 ms, not the 3–5 ms estimated.** ~10× better than
-   the project assumption — strengthens the native-binding case over the CLI.
+1. **Per-render cost is bimodal.** Most diagrams are 30–210 µs (better than the
+   3–5 ms estimate), BUT flowcharts with **edge labels** (`A -->|text| B`) cost
+   ~0.7–1.3 ms *per labeled edge* — a 6-node, 2-label flowchart is ~6.6 ms.
+   (An earlier note here claimed a flat ~0.25 ms; that was a label-free diagram.)
+   Upstream rendering characteristic, not the binding. Candidate for the v1.0.0
+   upstream coordination issue alongside the superlinear-edge-count note.
 2. **Layout is superlinear in edge count.** A 5,000-edge flowchart took ~74 s.
    Not a bug (it's the upstream layout algorithm), but: (a) document it,
    (b) keep stress fixtures modest, (c) a consumer rendering user-supplied
