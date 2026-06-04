@@ -16,9 +16,12 @@ import (
 // Options tunes a RenderWithOptions call. The zero value renders exactly like
 // Render: engine-default theme, accurate text metrics, intrinsic dimensions.
 type Options struct {
-	// Theme selects a color palette. "" or "default"/"modern" use the engine
-	// default; "dark", "neutral", and "forest" select alternative palettes.
-	// Unrecognized names fall back to the engine default. Case-insensitive.
+	// Theme selects a color palette (case-insensitive). "" or "default"/"modern"
+	// use the engine default; "neutral" is upstream's classic mermaid palette.
+	// "dark" and "forest" are mmdr-go's OWN palettes — the upstream engine ships
+	// no dark/forest themes, so these are defined here and are NOT intended to
+	// match mermaid.js's same-named themes. Unrecognized names fall back to the
+	// engine default.
 	Theme string
 	// FastText skips the font-database load and uses approximate text widths.
 	// Faster, with slightly less accurate text sizing.

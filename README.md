@@ -111,6 +111,22 @@ loop dependency-free and under one version.
 // Render parses Mermaid source and returns the rendered SVG.
 func Render(source string) (string, error)
 
+// RenderWithOptions renders with a theme, fast-text mode, and/or a preferred
+// aspect ratio, and reports the rendered dimensions.
+func RenderWithOptions(source string, opts Options) (Result, error)
+
+type Options struct {
+	Theme       string // ""/"default"/"modern" | "neutral" | "dark" | "forest"
+	FastText    bool   // skip font-DB load (faster, approximate text widths)
+	Width       int    // both Width & Height > 0 => preferred aspect ratio W/H
+	Height      int    //   (the SVG path has no fixed-pixel sizing upstream)
+	AspectRatio string // "16:9" | "4/3" | "1.5"; takes precedence over W/H
+}
+type Result struct {
+	SVG           string
+	Width, Height int // the rendered SVG root's dimensions
+}
+
 // Validate checks the source with mermaid-check and returns diagnostics (nil
 // when clean). It does not render.
 func Validate(source string) []Diagnostic
@@ -149,8 +165,12 @@ if errors.Is(err, mmdr.ErrInvalidInput) {
 }
 ```
 
-> `RenderWithOptions(source, Options)` (themes, fast-text mode, fixed
-> dimensions) is part of the `v1.0.0` API and not yet implemented in this PoC.
+> **Theme note:** the upstream engine ships only `default`/`modern` and `neutral`
+> (its classic palette). `"dark"` and `"forest"` are **mmdr-go's own** palettes —
+> not mermaid.js's same-named themes. **Dimensions:** the SVG path has no
+> fixed-pixel sizing (PNG-only upstream), so `Width`+`Height` act as a preferred
+> aspect ratio, not absolute pixels; `Result.Width/Height` report the real
+> rendered size.
 
 ## Build requirements
 
@@ -231,7 +251,7 @@ The static archives are **cross-built locally** (a `staticlib` needs no cross
 linker) via `make libs` and committed — no CI service required. Each Linux
 archive uses the `*-gnu` triple, whose old glibc baseline links into any modern
 distro (Ubuntu, Debian, **RHEL 8/9**); build your binary on the target as usual.
-`v1.0.0` adds `RenderWithOptions` and a tagged release.
+`v1.0.0` is a tagged-release formality once the API settles in real use.
 
 See [`docs/poc-findings.md`](docs/poc-findings.md) for the verification writeup.
 

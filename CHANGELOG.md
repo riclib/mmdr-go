@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- `RenderWithOptions(source, Options) (Result, error)` — render with a theme,
+  fast-text mode, and/or a preferred aspect ratio; `Result` reports the rendered
+  SVG dimensions. Backed by a new `mmdr_render_with_options` C-ABI entry point;
+  all four prebuilt archives rebuilt and re-verified (darwin arm64/amd64, linux
+  amd64/arm64 via OrbStack).
+
+### Notes
+- Themes: upstream ships only `default`/`modern` and `neutral`. `"dark"` and
+  `"forest"` are mmdr-go's own palettes, not mermaid.js's same-named themes.
+- `Width`/`Height` act as a preferred aspect ratio (the SVG path has no
+  fixed-pixel sizing upstream); `Result.Width/Height` report the real size.
+
 ## v0.1.0 — 2026-06-04
 
 First public pre-release. Wraps `mermaid-rs-renderer` 0.2.2.
