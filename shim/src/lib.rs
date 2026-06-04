@@ -279,6 +279,8 @@ fn theme_for(name: Option<&str>) -> Option<Theme> {
         "neutral" => Some(Theme::mermaid_default()),
         "dark" => Some(dark_theme()),
         "forest" => Some(forest_theme()),
+        "solid-dark" => Some(solid_dark_theme()),
+        "solid-light" => Some(solid_light_theme()),
         // Unknown name: keep the engine default rather than guess.
         _ => None,
     }
@@ -314,6 +316,72 @@ fn forest_theme() -> Theme {
     t.tertiary_color = "#E8F5E9".to_string();
     t.cluster_background = "#DCEDC8".to_string();
     t.cluster_border = "#558B2F".to_string();
+    t
+}
+
+/// The V4/Solid dark palette, tuned to blend into the Solid app shell. Derived
+/// from the modern theme with V4 design tokens. The background is `"none"` so
+/// the renderer emits a transparent root `<rect>` (the SVG inherits the host
+/// surface's background).
+fn solid_dark_theme() -> Theme {
+    let mut t = Theme::modern();
+    // Transparent canvas — see the module note on background.
+    t.background = "none".to_string();
+    // Node / primary fill, border, text.
+    t.primary_color = "#1f1f23".to_string();
+    t.primary_border_color = "#3f3f46".to_string();
+    t.primary_text_color = "#fafafa".to_string();
+    t.text_color = "#fafafa".to_string();
+    // Edge / connector line and edge-label text.
+    t.line_color = "#a1a1aa".to_string();
+    t.edge_label_background = "#1f1f23".to_string();
+    // Secondary / tertiary node fills in the same dark family.
+    t.secondary_color = "#27272a".to_string();
+    t.tertiary_color = "#18181b".to_string();
+    // Clusters / subgraphs.
+    t.cluster_background = "#18181b".to_string();
+    t.cluster_border = "#3f3f46".to_string();
+    // Sequence-diagram surfaces, kept in family; the accent #D71500 marks notes
+    // (the "special" element) so it reads as the Solid red accent.
+    t.sequence_actor_fill = "#1f1f23".to_string();
+    t.sequence_actor_border = "#3f3f46".to_string();
+    t.sequence_actor_line = "#a1a1aa".to_string();
+    t.sequence_note_fill = "#2a1416".to_string();
+    t.sequence_note_border = "#D71500".to_string();
+    t.sequence_activation_fill = "#27272a".to_string();
+    t.sequence_activation_border = "#3f3f46".to_string();
+    t
+}
+
+/// The V4/Solid light palette, tuned to blend into the Solid app shell. Derived
+/// from the modern theme with V4 design tokens. The background is `"none"` so
+/// the renderer emits a transparent root `<rect>`.
+fn solid_light_theme() -> Theme {
+    let mut t = Theme::modern();
+    // Transparent canvas.
+    t.background = "none".to_string();
+    // Node / primary fill, border, text.
+    t.primary_color = "#f3f4f6".to_string();
+    t.primary_border_color = "#d1d5db".to_string();
+    t.primary_text_color = "#111827".to_string();
+    t.text_color = "#111827".to_string();
+    // Edge / connector line and edge-label text.
+    t.line_color = "#6b7280".to_string();
+    t.edge_label_background = "#f3f4f6".to_string();
+    // Secondary / tertiary node fills in the same light family.
+    t.secondary_color = "#e5e7eb".to_string();
+    t.tertiary_color = "#f9fafb".to_string();
+    // Clusters / subgraphs.
+    t.cluster_background = "#f9fafb".to_string();
+    t.cluster_border = "#d1d5db".to_string();
+    // Sequence-diagram surfaces; accent #c41200 marks notes (the special node).
+    t.sequence_actor_fill = "#f3f4f6".to_string();
+    t.sequence_actor_border = "#d1d5db".to_string();
+    t.sequence_actor_line = "#6b7280".to_string();
+    t.sequence_note_fill = "#fdecea".to_string();
+    t.sequence_note_border = "#c41200".to_string();
+    t.sequence_activation_fill = "#e5e7eb".to_string();
+    t.sequence_activation_border = "#d1d5db".to_string();
     t
 }
 

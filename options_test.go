@@ -101,6 +101,52 @@ func TestRenderWithOptions_InvalidInput(t *testing.T) {
 	}
 }
 
+func TestRenderWithOptions_SolidThemes(t *testing.T) {
+	def, err := RenderWithOptions(optsDiagram, Options{})
+	if err != nil {
+		t.Fatalf("default render failed: %v", err)
+	}
+	dark, err := RenderWithOptions(optsDiagram, Options{Theme: "solid-dark"})
+	if err != nil {
+		t.Fatalf("solid-dark render failed: %v", err)
+	}
+	light, err := RenderWithOptions(optsDiagram, Options{Theme: "solid-light"})
+	if err != nil {
+		t.Fatalf("solid-light render failed: %v", err)
+	}
+
+	// Both must be valid, positively-sized SVG.
+	for name, r := range map[string]Result{"solid-dark": dark, "solid-light": light} {
+		if !strings.Contains(r.SVG, "<svg") {
+			t.Fatalf("%s output is not SVG: %q", name, truncate(r.SVG))
+		}
+		if r.Width <= 0 || r.Height <= 0 {
+			t.Fatalf("%s expected positive dimensions, got W=%d H=%d", name, r.Width, r.Height)
+		}
+		// Transparent background: the root full-canvas <rect> must be fill="none".
+		i := strings.Index(r.SVG, "<rect")
+		if i < 0 {
+			t.Fatalf("%s has no <rect> background element", name)
+		}
+		j := strings.IndexByte(r.SVG[i:], '>')
+		root := r.SVG[i : i+j+1]
+		if !strings.Contains(root, `fill="none"`) {
+			t.Errorf("%s root background rect not transparent: %q", name, root)
+		}
+	}
+
+	// The two Solid themes must differ from each other and from the default.
+	if dark.SVG == light.SVG {
+		t.Error("solid-dark and solid-light produced identical SVG")
+	}
+	if dark.SVG == def.SVG {
+		t.Error("solid-dark produced identical SVG to the default theme")
+	}
+	if light.SVG == def.SVG {
+		t.Error("solid-light produced identical SVG to the default theme")
+	}
+}
+
 func TestRenderWithOptions_UnknownThemeFallsBack(t *testing.T) {
 	// An unknown theme keeps the engine default rather than erroring.
 	def, err := RenderWithOptions(optsDiagram, Options{})

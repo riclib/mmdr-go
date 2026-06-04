@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Two first-party named themes tuned to the Solid/V4 app's design tokens:
+  `"solid-light"` and `"solid-dark"`. Both render with a TRANSPARENT background
+  (the root canvas `<rect>` is `fill="none"`) so diagrams blend into the host
+  surface. Synthesized from `Theme::modern()` in the shim; the compiled archives
+  for all four platforms were rebuilt (the C ABI is unchanged).
+
 ## v0.2.0 — 2026-06-04
 
 ### Added

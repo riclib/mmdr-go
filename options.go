@@ -20,8 +20,14 @@ type Options struct {
 	// use the engine default; "neutral" is upstream's classic mermaid palette.
 	// "dark" and "forest" are mmdr-go's OWN palettes — the upstream engine ships
 	// no dark/forest themes, so these are defined here and are NOT intended to
-	// match mermaid.js's same-named themes. Unrecognized names fall back to the
-	// engine default.
+	// match mermaid.js's same-named themes.
+	//
+	// "solid-light" and "solid-dark" are first-party palettes tuned to the
+	// Solid/V4 app's design tokens, so diagrams blend into its shell. Both use a
+	// TRANSPARENT background (the root <rect> is fill="none"), inheriting the host
+	// surface's background rather than painting their own.
+	//
+	// Unrecognized names fall back to the engine default.
 	Theme string
 	// FastText skips the font-database load and uses approximate text widths.
 	// Faster, with slightly less accurate text sizing.
