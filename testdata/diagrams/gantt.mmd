@@ -1,0 +1,9 @@
+gantt
+    title Release plan
+    dateFormat YYYY-MM-DD
+    section PoC
+    Shim          :done, a1, 2026-06-01, 3d
+    Binding       :active, a2, after a1, 2d
+    section v1
+    CI matrix     :a3, after a2, 5d
+    Docs          :a4, after a2, 3d

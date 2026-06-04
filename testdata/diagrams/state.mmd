@@ -1,0 +1,7 @@
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Rendering : Render()
+    Rendering --> Idle : ok
+    Rendering --> Failed : panic
+    Failed --> Idle : reset
+    Idle --> [*]

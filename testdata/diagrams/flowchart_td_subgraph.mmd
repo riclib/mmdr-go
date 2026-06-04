@@ -1,0 +1,9 @@
+flowchart TD
+    subgraph ingest[Ingest]
+        S1[Source] --> S2[Parse]
+    end
+    subgraph store[Store]
+        T1[(Database)]
+    end
+    S2 --> T1
+    T1 --> Q[Query]

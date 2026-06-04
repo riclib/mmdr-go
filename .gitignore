@@ -1,0 +1,9 @@
+# Rust build artifacts. The compiled archive is committed under lib/, not here.
+/shim/target/
+
+# Go test/coverage output
+*.test
+*.out
+
+# OS / editor cruft
+.DS_Store

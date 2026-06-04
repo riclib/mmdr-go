@@ -1,0 +1,89 @@
+# Contributing to mmdr-go
+
+This module wraps the Rust [`mermaid-rs-renderer`](https://github.com/1jehuang/mermaid-rs-renderer)
+crate as a cgo binding with **prebuilt static archives**. Consumers need only a
+C toolchain; the Rust toolchain is required only to *rebuild* those archives.
+
+## Layout
+
+```
+mmdr.go, mmdr.h, link_*.go   -- the Go binding (per-platform link files)
+lib/<os>_<arch>/libmmdr.a    -- committed prebuilt archives (binary)
+shim/                        -- the Rust C-ABI crate that produces them
+.mmdr-version                -- the single source of truth for the upstream pin
+```
+
+## Rebuilding the static archive (host platform)
+
+You need a Rust toolchain (`rustup`, stable). Then:
+
+```sh
+make lib        # builds shim for the host triple, copies libmmdr.a into lib/
+make test       # go test ./...
+make test-race  # go test -race (skips the long leak test)
+```
+
+`make lib` runs `cargo build --release` in `shim/` and copies the resulting
+`libmmdr.a` into the matching `lib/<os>_<arch>/` directory.
+
+After building, capture the native link libs for any **new** platform:
+
+```sh
+cd shim && cargo rustc --release -- --print native-static-libs
+```
+
+and put them in that platform's `link_<os>_<arch>.go` `#cgo LDFLAGS`. (On macOS,
+the Go linker already provides libSystem, so only `-liconv` is added beyond
+`-lmmdr`.)
+
+## C-ABI invariants (do not break these)
+
+The boundary in `shim/src/lib.rs` is small but load-bearing:
+
+1. **Panic safety.** Every call into the renderer is wrapped in `catch_unwind`.
+   A Rust panic must return `MMDR_PANIC`, never unwind across the FFI boundary
+   (that is undefined behavior). Do not add a code path that calls upstream
+   outside the `catch_unwind`.
+2. **Allocator ownership.** Strings returned to Go are allocated by Rust
+   (`CString::into_raw`) and must be freed by Rust (`mmdr_free` →
+   `CString::from_raw`). Never free a shim pointer with C `free`, and never pass
+   a C-allocated pointer to `mmdr_free`. The Go side already follows this.
+3. **Out-params are pre-nulled.** `mmdr_render` sets `*out_svg`/`*out_err` to
+   null before doing anything, so callers may read them unconditionally.
+4. **No interior NULs escape.** Error messages are sanitized; an SVG containing
+   a NUL is reported as a render error rather than truncated.
+
+The status codes (`MMDR_OK`/`RENDER_ERROR`/`PANIC`/`BAD_INPUT`) are defined in
+three places that must stay in sync: `shim/src/lib.rs`, `mmdr.h`, and the
+`switch` in `mmdr.go`.
+
+## Bumping the upstream mermaid-rs-renderer version
+
+1. Update the pin in **three** places: `.mmdr-version`, `shim/Cargo.toml`
+   (`mermaid-rs-renderer = "=x.y.z"`), and `UPSTREAM_VERSION` in
+   `shim/src/lib.rs`.
+2. `make lib` on each supported platform (CI does this for the release).
+3. Re-run the thread-safety source audit (grep the new crate version for
+   `static`/`Lazy`/`Mutex`/interior mutability) — the safety claim in the README
+   is version-specific.
+4. `make test-race`, then the full `make test` (including the leak test).
+5. Note the new version in `CHANGELOG.md` and bump the binding's own version per
+   the policy below.
+
+## Versioning policy
+
+Module path `github.com/riclib/mmdr-go` is stable; renaming it is a breaking
+change for every consumer. For `vX.Y.Z`:
+
+* `Z` — upstream patch bump or an internal wrapper fix.
+* `Y` — upstream minor bump or new wrapper API surface.
+* `X` — a breaking change to *our* Go API (independent of upstream's major).
+
+Each release pins one upstream version and records the mapping in the changelog.
+
+## Tests
+
+* `go test ./...` runs the corpus, error, concurrency, and leak tests.
+* `go test -race -short ./...` for the race detector without the slow leak test.
+* New diagram fixtures go in `testdata/diagrams/<name>.mmd`; they are picked up
+  automatically.

@@ -1,0 +1,8 @@
+sequenceDiagram
+    participant U as User
+    participant A as API
+    participant D as DB
+    U->>A: request
+    A->>D: query
+    D-->>A: rows
+    A-->>U: response

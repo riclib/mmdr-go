@@ -1,0 +1,10 @@
+classDiagram
+    class Renderer {
+        +Render(source) string
+        +Version() string
+    }
+    class Options {
+        +string Theme
+        +bool FastText
+    }
+    Renderer --> Options : uses
