@@ -13,11 +13,36 @@ use std::os::raw::c_char;
 use std::panic::{self, AssertUnwindSafe};
 use std::ptr;
 
-use mermaid_rs_renderer::{render, render_with_options, RenderOptions, Theme};
+use mermaid_rs_renderer::{compute_layout, parse_mermaid, render_svg, RenderOptions, Theme};
 
 /// Upstream `mermaid-rs-renderer` version this shim is pinned to.
 /// Must match the `=x.y.z` requirement in Cargo.toml and the `.mmdr-version` file.
-const UPSTREAM_VERSION: &str = "0.2.2";
+const UPSTREAM_VERSION: &str = "0.3.1";
+
+/// Render leniently: parse, lay out, serialize — with no preflight validation.
+///
+/// Deliberately NOT `mermaid_rs_renderer::render_with_options`. As of upstream
+/// 0.3.0 that entry point routes through `parse_mermaid_strict`, which runs a
+/// preflight validator and hard-fails the render. We bypass it because:
+///
+///   1. mmdr-go's contract is that the renderer is LENIENT — flawed input still
+///      yields a best-effort SVG, and `Validate` is the error channel. The
+///      `RenderChecked` API depends on the render still happening.
+///   2. That validator only sees a `subgraph` opener when the trimmed line
+///      STARTS with `subgraph`, so an opener after an inline `;` separator
+///      (`flowchart TD; subgraph S` … `end`) is missed and the matching `end` is
+///      then reported as unbalanced — rejecting VALID Mermaid that 0.2.2 renders
+///      fine.
+///
+/// This pipeline is what upstream's own `render_with_options` did through 0.2.2;
+/// every piece of it is still public API.
+/// The error is flattened to a `String` here (the shim only ever formats it into
+/// a C string), which keeps `anyhow` out of the shim's own dependency list.
+fn render_lenient(source: &str, options: &RenderOptions) -> Result<String, String> {
+    let parsed = parse_mermaid(source).map_err(|e| format!("{e}"))?;
+    let layout = compute_layout(&parsed.graph, &options.theme, &options.layout);
+    Ok(render_svg(&layout, &options.theme, &options.layout))
+}
 
 // Status codes returned by `mmdr_render`. Mirrored in mmdr.h and mmdr.go.
 const MMDR_OK: i32 = 0;
@@ -66,7 +91,8 @@ pub extern "C" fn mmdr_render(
         Err(_) => return MMDR_BAD_INPUT,
     };
 
-    match panic::catch_unwind(AssertUnwindSafe(|| render(source))) {
+    let options = RenderOptions::default();
+    match panic::catch_unwind(AssertUnwindSafe(|| render_lenient(source, &options))) {
         Ok(Ok(svg)) => match CString::new(svg) {
             Ok(c) => {
                 write_str(out_svg, c);
@@ -168,7 +194,7 @@ pub extern "C" fn mmdr_render_with_options(
         options.layout.preferred_aspect_ratio = Some(width as f32 / height as f32);
     }
 
-    match panic::catch_unwind(AssertUnwindSafe(|| render_with_options(source, options))) {
+    match panic::catch_unwind(AssertUnwindSafe(|| render_lenient(source, &options))) {
         Ok(Ok(svg)) => match CString::new(svg) {
             Ok(c) => {
                 write_str(out_svg, c);
@@ -261,11 +287,15 @@ fn opt_str<'a>(ptr: *const c_char) -> Result<Option<&'a str>, ()> {
 
 /// Map a theme name to a `Theme`, or `None` to keep the engine default.
 ///
-/// The upstream crate ships only two theme constructors — `Theme::modern` (the
-/// engine default) and `Theme::mermaid_default`. The dark/neutral/forest
-/// palettes are synthesized here by overriding the public color fields of a base
-/// theme; they are genuine distinct palettes, not aliases. Matching is
-/// case-insensitive; an empty or unrecognized name keeps the default.
+/// The dark/forest/solid-* palettes are synthesized here by overriding the public
+/// color fields of a base theme; they are genuine distinct palettes, not aliases.
+/// Matching is case-insensitive; an empty or unrecognized name keeps the default.
+///
+/// Upstream gained its own `Theme::dark`/`forest`/`neutral` constructors in 0.3.0.
+/// We deliberately do NOT adopt them: mmdr-go's same-named themes predate them and
+/// switching would silently recolor every existing consumer's diagrams. `"neutral"`
+/// stays mapped to `Theme::mermaid_default` (the classic mermaid palette) for the
+/// same reason. If upstream's presets are ever wanted, expose them under new names.
 fn theme_for(name: Option<&str>) -> Option<Theme> {
     let name = name?.trim();
     if name.is_empty() {

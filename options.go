@@ -18,9 +18,10 @@ import (
 type Options struct {
 	// Theme selects a color palette (case-insensitive). "" or "default"/"modern"
 	// use the engine default; "neutral" is upstream's classic mermaid palette.
-	// "dark" and "forest" are mmdr-go's OWN palettes — the upstream engine ships
-	// no dark/forest themes, so these are defined here and are NOT intended to
-	// match mermaid.js's same-named themes.
+	// "dark" and "forest" are mmdr-go's OWN palettes, defined in the shim, and are
+	// NOT intended to match mermaid.js's same-named themes. (The upstream engine
+	// grew its own dark/forest/neutral presets in 0.3.0; mmdr-go keeps its own so
+	// upgrading never silently recolors an existing diagram.)
 	//
 	// "solid-light" and "solid-dark" are first-party palettes tuned to the
 	// Solid/V4 app's design tokens, so diagrams blend into its shell. Both use a

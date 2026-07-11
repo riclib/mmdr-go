@@ -1,5 +1,55 @@
 # Changelog
 
+## v0.4.0 — 2026-07-11
+
+Upstream bump: `mermaid-rs-renderer` **0.2.2 → 0.3.1**. All four prebuilt archives
+rebuilt. The C ABI and the Go API are unchanged.
+
+### Changed
+- **Every diagram's rendered geometry changes.** Upstream 0.3.0 overhauled
+  subgraph containment and edge routing: sibling subgraph membership now matches
+  mermaid-js (`flowDb.makeUniq`), edges detour around subgraph boxes they don't
+  belong to, and non-member nodes that visually landed inside a subgraph box are
+  evicted. Real fix, visibly better output — in `testdata/flowchart_td_subgraph`
+  the `Query` node no longer overlaps the `Store` box — but **any golden-SVG
+  snapshot downstream will churn**. 63 of our 91 render fixtures also change
+  dimensions. Also in the bump: architecture-beta port routing, C4 connector
+  routing, gantt/sequence/block-beta parse fixes, pie legend and CJK title fixes.
+
+### Fixed
+- Rendering stayed **lenient**, which took deliberate work. As of upstream 0.3.0,
+  `render`/`render_with_options` route through the new `parse_mermaid_strict`,
+  which runs a preflight validator and hard-fails the render. That would have
+  broken this library twice over: it contradicts mmdr-go's documented contract
+  (flawed input yields a best-effort SVG; `Validate` is the error channel, and
+  `RenderChecked` depends on the render still happening), and the validator has a
+  false positive — it only recognizes a `subgraph` opener when the trimmed line
+  *starts with* `subgraph`, so an opener after an inline `;` separator
+  (`flowchart TD; subgraph S` … `end`) is missed and the matching `end` is then
+  reported as unbalanced, rejecting **valid** Mermaid that 0.2.2 renders fine.
+  The shim now composes the lenient pipeline itself from still-public upstream
+  parts (`parse_mermaid` → `compute_layout` → `render_svg`) — exactly what
+  upstream's own `render_with_options` did through 0.2.2 — so we get every layout
+  improvement without the strict path.
+
+### Notes
+- One narrow behavior change survives, on genuinely invalid input: upstream's
+  *parser* (not the preflight validator) now rejects a line starting with a bare
+  arrow (`--> B`), where 0.2.2 rendered it best-effort. It returns
+  `ErrInvalidInput` rather than a wrong diagram, which is the better outcome.
+- Themes are unchanged. Upstream gained its own `dark`/`forest`/`neutral` presets
+  in 0.3.0; mmdr-go keeps its own same-named palettes so an upgrade never silently
+  recolors an existing diagram. `"neutral"` still maps to the classic mermaid
+  palette.
+- `Result.Width/Height` still reports `0x0` for `pie`, `mindmap`, and `gitgraph`
+  (they emit `width="100%"` and no numeric height, and dimensions are parsed from
+  the SVG root). Pre-existing, not caused by this bump. Upstream 0.3.0 added
+  `measure_svg_dimensions`, which returns exact dimensions from the layout and
+  would fix this properly — it needs a new C-ABI entry point.
+- Maintainer gotcha: Go's build cache does not re-hash the contents of
+  `lib/*/libmmdr.a`, so after rebuilding an archive it will happily link the stale
+  one. Run `go clean -cache` before testing, or you will validate the old engine.
+
 ## v0.3.0 — 2026-06-04
 
 ### Added

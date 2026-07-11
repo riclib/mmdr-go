@@ -69,9 +69,12 @@ It reads from the file argument or stdin, writes to stdout or `-o`, and exits
 
 ## Validating input
 
-mmdr's renderer is **lenient**: bad Mermaid never returns an error — it silently
-produces a best-effort (often wrong) diagram. There's no error return and no
-error graphic, so you can't tell from the render alone that the input was wrong.
+mmdr's renderer is **lenient**: bad Mermaid almost never returns an error — it
+silently produces a best-effort (often wrong) diagram. There's no error graphic,
+so you generally can't tell from the render alone that the input was wrong. (A
+few inputs the parser cannot make any sense of — a line starting with a bare
+`-->`, say — do return `ErrInvalidInput`. Treat the error as a bonus, not a
+guarantee.)
 
 For an error signal — say, to feed back to an LLM that generated the diagram —
 use `Validate`, which checks the source with a vendored, pure-Go Mermaid parser
@@ -145,7 +148,7 @@ type CheckedResult struct {
 }
 func (CheckedResult) HasErrors() bool
 
-// Version returns the upstream mermaid-rs-renderer version, e.g. "0.2.2".
+// Version returns the upstream mermaid-rs-renderer version, e.g. "0.3.1".
 func Version() string
 
 // Sentinel errors, matchable with errors.Is.
@@ -165,12 +168,15 @@ if errors.Is(err, mmdr.ErrInvalidInput) {
 }
 ```
 
-> **Theme note:** the upstream engine ships only `default`/`modern` and `neutral`
-> (its classic palette). `"dark"` and `"forest"` are **mmdr-go's own** palettes —
-> not mermaid.js's same-named themes. **Dimensions:** the SVG path has no
-> fixed-pixel sizing (PNG-only upstream), so `Width`+`Height` act as a preferred
-> aspect ratio, not absolute pixels; `Result.Width/Height` report the real
-> rendered size.
+> **Theme note:** `"dark"`, `"forest"`, `"solid-light"`, and `"solid-dark"` are
+> **mmdr-go's own** palettes — not mermaid.js's same-named themes. Upstream
+> gained its own `dark`/`forest`/`neutral` presets in 0.3.0, but mmdr-go keeps
+> its palettes so existing renders don't change colour underneath you; `"neutral"`
+> still maps to upstream's classic mermaid palette. **Dimensions:** the SVG path
+> has no fixed-pixel sizing (PNG-only upstream), so `Width`+`Height` act as a
+> preferred aspect ratio, not absolute pixels; `Result.Width/Height` report the
+> real rendered size — except for `pie`, `mindmap`, and `gitgraph`, which emit a
+> relative width and currently report `0x0`.
 
 ## Build requirements
 
@@ -187,7 +193,7 @@ if errors.Is(err, mmdr.ErrInvalidInput) {
 
 **`Render` is safe to call concurrently from multiple goroutines.** This is not
 just an empirical observation — it follows from the upstream source
-(`mermaid-rs-renderer` 0.2.2):
+(`mermaid-rs-renderer` 0.3.1):
 
 * The only mutable global is the text-measurement font cache,
   `static TEXT_MEASURER: Lazy<Mutex<TextMeasurer>>`. Every access goes through
@@ -223,7 +229,7 @@ render.)
 
 ## Supported diagrams
 
-This PoC renders all of the following with `mermaid-rs-renderer` 0.2.2
+This PoC renders all of the following with `mermaid-rs-renderer` 0.3.1
 (see `testdata/diagrams/`): flowchart, sequence, gantt, class, state, ER, pie,
 journey, mindmap, gitGraph, timeline, quadrant. Upstream advertises 23 diagram
 types; layout quality "may not match mermaid-cli in all cases" — see the

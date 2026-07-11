@@ -14,7 +14,7 @@ crate-type = ["staticlib"]
 [dependencies]
 # Pinned exact: an upstream bump is deliberate work, not an automatic float.
 # Keep this in sync with UPSTREAM_VERSION in src/lib.rs and .mmdr-version.
-mermaid-rs-renderer = "=0.2.2"
+mermaid-rs-renderer = "=0.3.1"
 
 [profile.release]
 # Smaller archive; rendering is not hot enough to need opt-level=3 over "s".

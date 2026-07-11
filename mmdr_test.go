@@ -98,7 +98,7 @@ func TestRenderCorpus(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
-	if v := Version(); v != "0.2.2" {
-		t.Errorf("Version() = %q, want %q", v, "0.2.2")
+	if v := Version(); v != "0.3.1" {
+		t.Errorf("Version() = %q, want %q", v, "0.3.1")
 	}
 }

@@ -82,7 +82,7 @@ func Render(source string) (string, error) {
 }
 
 // Version returns the upstream mermaid-rs-renderer version this binding wraps,
-// e.g. "0.2.2".
+// e.g. "0.3.1".
 func Version() string {
 	cVer := C.mmdr_version()
 	if cVer == nil {
