@@ -24,7 +24,17 @@ make test-race  # go test -race (skips the long leak test)
 ```
 
 `make lib` runs `cargo build --release` in `shim/` and copies the resulting
-`libmmdr.a` into the matching `lib/<os>_<arch>/` directory.
+`libmmdr.a` into the matching `lib/<os>_<arch>/` directory. It then runs
+`make stamp`, and that step is not optional.
+
+> **Go's build cache does not notice a rebuilt archive.** cgo names `libmmdr.a`
+> by path in `#cgo LDFLAGS`, and Go hashes the LDFLAGS *text*, not the archive's
+> contents — so the package's cache key is unchanged and `go test` will happily
+> relink the **stale** archive. You get a green suite for the engine you just
+> replaced. `make stamp` rewrites the digest in `archive_stamp.go`, which changes
+> a source file in the package and forces the relink. If you ever build an archive
+> without going through `make lib`/`make libs`, run `make stamp` (or
+> `go clean -cache`) before you trust a test result.
 
 After building, capture the native link libs for any **new** platform:
 
